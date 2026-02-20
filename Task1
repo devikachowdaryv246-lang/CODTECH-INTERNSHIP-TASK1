@@ -1,0 +1,47 @@
+import pyspark
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, count, avg, desc
+
+# 1. Initialize Spark Session
+# 'local[*]' tells Spark to use all available CPU cores on your machine
+spark = SparkSession.builder \
+    .appName("CodTech_BigData_Analysis") \
+    .getOrCreate()
+
+print("Spark Session Created Successfully.")
+
+# 2. Load the Dataset
+# Replace 'your_large_dataset.csv' with your actual file path
+# If you don't have one, you can use public datasets like NYC Taxi data or MovieLens
+try:
+    df = spark.read.csv("dataset.csv", header=True, inferSchema=True)
+    print(f"Initial Record Count: {df.count()}")
+    df.show(5)
+except Exception as e:
+    print(f"Error loading file: {e}")
+
+# 3. Data Cleaning & Transformation
+# Removing nulls and selecting relevant columns for demonstration
+df_cleaned = df.dropna().dropDuplicates()
+
+# 4. Deriving Insights (The "Analysis" Part)
+# Example: Grouping by a category and calculating average/count
+# Replace 'CategoryColumn' and 'ValueColumn' with your actual column names
+print("Performing Grouped Analysis...")
+insights = df_cleaned.groupBy("CategoryColumn") \
+    .agg(count("*").alias("Total_Count"), 
+         avg("ValueColumn").alias("Average_Value")) \
+    .orderBy(desc("Total_Count"))
+
+# Show the results
+insights.show()
+
+# 5. Demonstrating Scalability: Writing results back to Disk
+# Using Parquet format is industry standard for Big Data scalability
+output_path = "output_insights.parquet"
+insights.write.mode("overwrite").parquet(output_path)
+
+print(f"Analysis complete. Insights saved to {output_path}")
+
+# Stop the Spark session
+spark.stop()
