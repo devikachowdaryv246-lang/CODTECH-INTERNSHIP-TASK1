@@ -1,0 +1,57 @@
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, count, avg, desc
+
+# 1. Initialize Spark Session
+spark = SparkSession.builder \
+    .appName("CodTech_BigData_Analysis") \
+    .getOrCreate()
+
+print("Spark Session Created Successfully.")
+
+# 2. Load the Dataset
+# For GitHub, you can use a public CSV or generate dummy data.
+# Replace 'dataset.csv' with your actual file path.
+try:
+    # df = spark.read.csv("large_sales_data.csv", header=True, inferSchema=True)
+    # --- MOCK DATA GENERATION FOR DEMO ---
+    data = [("Electronics", 1200), ("Fashion", 900), ("Home Decor", 700), 
+            ("Books", 600), ("Groceries", 1100), ("Sports", 800)]
+    columns = ["Category", "Sales"]
+    df = spark.createDataFrame(data, columns)
+    # --------------------------------------
+    
+    print(f"Dataset loaded. Total records: {df.count()}")
+except Exception as e:
+    print(f"Error loading file: {e}")
+
+# 3. Big Data Processing (Aggregation)
+print("Processing data to derive insights...")
+insights_df = df.groupBy("Category") \
+    .agg(count("*").alias("Total_Transactions"), 
+         avg("Sales").alias("Average_Sales")) \
+    .orderBy(desc("Total_Transactions"))
+
+# 4. Convert to Pandas for Visualization
+# PySpark handles the heavy lifting; Pandas is used only for the small 'insights' result
+pandas_insights = insights_df.toPandas()
+
+# 5. Visualization
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Category', y='Total_Transactions', data=pandas_insights, palette='viridis')
+plt.title('Task 1: Big Data Insights - Transactions by Category', fontsize=14)
+plt.xlabel('Product Category')
+plt.ylabel('Count of Transactions')
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Save the plot for your GitHub README
+plt.savefig('big_data_visualization.png')
+print("Visualization saved as big_data_visualization.png")
+
+# 6. Save Cleaned Data to Parquet (Industry Standard for Big Data)
+# insights_df.write.mode("overwrite").parquet("output_insights.parquet")
+
+spark.stop()
